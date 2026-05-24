@@ -238,7 +238,13 @@ def key_frames(request):
             ""
         ]
 
-        images = generate_images(context["scenes"], angles, save_dir)
+        scenes = context.get("scenes")
+
+        if not scenes:
+            context["error"] = "Scenes not found. Please generate script again."
+            return render(request, "home.html", context)
+
+        images = generate_images(scenes, angles, save_dir)
 
         if not images:
             context["error"] = "Key frames not generated"
