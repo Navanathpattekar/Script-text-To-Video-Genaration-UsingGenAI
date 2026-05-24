@@ -42,25 +42,30 @@ def generate_scenes(script):
         }
     }
 
-    response = requests.post(api_url, headers=HEADERS, json=data)
-
-    # Debug print
-    print("DEBUG SCENE RESPONSE:", response.text)
-
-    response_data = response.json()
-
     try:
-        return [
+        response = requests.post(api_url, headers=HEADERS, json=data)
+
+        print("DEBUG SCENE RESPONSE:", response.text)
+
+        response_data = response.json()
+
+        # If API returns error
+        if isinstance(response_data, dict) and response_data.get("error"):
+            print("HF ERROR:", response_data["error"])
+            return []
+
+        # Extract scenes
+        scenes = [
             scene.strip()
             for scene in response_data[0]["summary_text"].split(".")
             if scene.strip()
         ]
+
+        return scenes
+
     except Exception as e:
         print("ERROR:", e)
-
-        return render(request, "home.html", {
-            "error": str(e)
-        })
+        return []
 
 
 # --------------------------
