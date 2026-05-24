@@ -19,10 +19,7 @@ HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 # NEW Endpoint (old one is deprecated)
 # HF_API_URL = "https://router.huggingface.co/hf-inference/models"
 
-HF_API_URL = os.getenv(
-    "HF_API_URL",
-    "https://router.huggingface.co/hf-inference/models"
-)
+HF_API_URL = os.getenv("HF_API_URL")
 
 context = {}
 now = ""
