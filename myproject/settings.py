@@ -1,4 +1,3 @@
-
 """
 Django settings for myproject project.
 
@@ -29,7 +28,7 @@ SECRET_KEY = 'django-insecure-(ry%s21q#k=b&t+y12)6@mlr6-d=k&gf+oue3@fm_m0p3p$8d(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["script-text-to-video-genaration.onrender.com"]
 
 
 # Application definition
@@ -59,7 +58,9 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [
+            'C:/Users/HP/OneDrive/Documents/major project/env/myproject/myapp/Templates/',
+            ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
