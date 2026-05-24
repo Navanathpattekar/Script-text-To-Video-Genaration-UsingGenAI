@@ -19,7 +19,10 @@ HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 # NEW Endpoint (old one is deprecated)
 # HF_API_URL = "https://router.huggingface.co/hf-inference/models"
 
-HF_API_URL = os.getenv("HF_API_URL")
+HF_API_URL = os.getenv(
+    "HF_API_URL",
+    "https://api-inference.huggingface.co/models"
+)
 
 context = {}
 now = ""
@@ -99,29 +102,48 @@ def generate_images(scenes, template, save_dir):
                 }
             }
 
-            response = requests.post(api_url, headers=HEADERS, json=data)
-
-            if response.status_code == 200:
-                filepath = f"{total_frame_cnt + 1:04d}.jpeg"
-
-                with open(filepath, "wb") as file:
-                    file.write(response.content)
-
-                img = os.path.join(save_dir, filepath).replace("\\", "/")
-                generated_images.append(img)
-
-                scene_frame_cnt += 1
-                total_frame_cnt += 1
-                time.sleep(4)
-
-            else:
-                print("IMAGE GEN ERROR:", response.text)
-                time.sleep(4)
+            try:
+                response = requests.post(
+                    api_url,
+                    headers=HEADERS,
+                    json=data,
+                    timeout=60
+                )
+            except Exception as e:
+                print("REQUEST FAILED:", e)
                 err_limit += 1
+                time.sleep(4)
+                continue
 
-        time.sleep(4)
+            if response.status_code != 200:
+                print("IMAGE GEN ERROR:", response.text)
+                err_limit += 1
+                time.sleep(4)
+                continue
 
-    return generated_images
+            # 🚨 check if response is actually image
+            content_type = response.headers.get("content-type", "")
+
+            if "image" not in content_type:
+                print("NOT IMAGE RESPONSE:", response.text)
+                err_limit += 1
+                time.sleep(4)
+                continue
+
+            filepath = f"{total_frame_cnt + 1:04d}.jpeg"
+            full_path = os.path.join(save_dir, filepath)
+
+            with open(full_path, "wb") as file:
+                file.write(response.content)
+
+            img = os.path.join(save_dir, filepath).replace("\\", "/")
+            generated_images.append(img)
+
+            scene_frame_cnt += 1
+            total_frame_cnt += 1
+            time.sleep(4)
+        
+        return generated_images
 
 
 # --------------------------
@@ -209,7 +231,7 @@ def home(request):
             context["error"] = "Error in generating scenes"
             return render(request, "home.html", context)
 
-        context["scenes"] = scenes
+        request.session["scenes"] = scenes
         return render(request, "scenes.html", context)
 
     return render(request, "home.html", context)
@@ -238,7 +260,7 @@ def key_frames(request):
             ""
         ]
 
-        scenes = context.get("scenes")
+        scenes = request.session.get("scenes")
 
         if not scenes:
             context["error"] = "Scenes not found. Please generate script again."
