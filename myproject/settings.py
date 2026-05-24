@@ -1,3 +1,4 @@
+
 """
 Django settings for myproject project.
 
@@ -58,9 +59,7 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            'C:/Users/HP/OneDrive/Documents/major project/env/myproject/myapp/Templates/',
-            ],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
