@@ -75,20 +75,23 @@ def generate_scenes(script):
 # --------------------------
 # 2️⃣ Generate KEY FRAMES
 # --------------------------
-def generate_images(scenes, template, save_dir):
+def generate_images(scenes, template, save_dir_abs):
     api_url = f"{HF_API_URL}/black-forest-labs/FLUX.1-schnell"
 
     generated_images = []
     err_limit = 0
     total_frame_cnt = 0
-    scene_frame_cnt = 0
+
+    os.makedirs(save_dir_abs, exist_ok=True)
 
     for i, description in enumerate(scenes):
 
+        scene_frame_cnt = 0
+
         while True:
-            if err_limit == 5 or scene_frame_cnt == 3:
+
+            if err_limit >= 5 or scene_frame_cnt >= 3:
                 err_limit = 0
-                scene_frame_cnt = 0
                 break
 
             data = {
@@ -121,7 +124,6 @@ def generate_images(scenes, template, save_dir):
                 time.sleep(4)
                 continue
 
-            # 🚨 check if response is actually image
             content_type = response.headers.get("content-type", "")
 
             if "image" not in content_type:
@@ -131,20 +133,20 @@ def generate_images(scenes, template, save_dir):
                 continue
 
             filepath = f"{total_frame_cnt + 1:04d}.jpeg"
-            full_path = os.path.join(save_dir, filepath)
+            full_path = os.path.join(save_dir_abs, filepath)
 
             with open(full_path, "wb") as file:
                 file.write(response.content)
 
-            img = os.path.join(save_dir, filepath).replace("\\", "/")
-            generated_images.append(img)
+            img_url = os.path.join(save_dir_abs, filepath).replace("\\", "/")
+            generated_images.append(img_url)
 
             scene_frame_cnt += 1
             total_frame_cnt += 1
-            time.sleep(4)
-        
-        return generated_images
 
+            time.sleep(4)
+
+    return generated_images
 
 # --------------------------
 # 3️⃣ Interpolate Frames
