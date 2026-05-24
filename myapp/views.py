@@ -56,8 +56,11 @@ def generate_scenes(script):
             if scene.strip()
         ]
     except Exception as e:
-        print("Scene Parsing Error:", e)
-        return []
+        print("ERROR:", e)
+
+        return render(request, "home.html", {
+            "error": str(e)
+        })
 
 
 # --------------------------
