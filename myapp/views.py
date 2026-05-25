@@ -4,7 +4,7 @@ import subprocess
 import requests
 from django.shortcuts import render
 import pytz
-from datetime import datetime, timezone
+from datetime import datetime
 from myproject.settings import MEDIA_ROOT, MEDIA_URL, BASE_DIR
 from dotenv import load_dotenv
 load_dotenv()
@@ -58,10 +58,14 @@ def generate_scenes(script):
             return []
 
         # Extract scenes
+        if not isinstance(response_data, list) or "summary_text" not in response_data[0]:
+            print("HF RESPONSE INVALID:", response_data)
+            return []
+
         scenes = [
-            scene.strip()
-            for scene in response_data[0]["summary_text"].split(".")
-            if scene.strip()
+            s.strip()
+            for s in response_data[0]["summary_text"].split(".")
+            if s.strip()
         ]
 
         return scenes
@@ -256,8 +260,12 @@ def home(request):
 def key_frames(request):
     if request.method == "POST":
 
-        timezone = pytz.timezone("Asia/Kolkata")
-        now = datetime.now(timezone).strftime("%d-%m--%H-%M")
+        global context, save_dir, save_dir_abs, now
+
+        from pytz import timezone as pytz_timezone
+
+        ist = pytz_timezone("Asia/Kolkata")
+        now = datetime.now(ist).strftime("%d-%m--%H-%M")
 
         save_dir_abs = os.path.join(
             MEDIA_ROOT,
