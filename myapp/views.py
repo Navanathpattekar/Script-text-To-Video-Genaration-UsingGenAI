@@ -4,7 +4,7 @@ import subprocess
 import requests
 from django.shortcuts import render
 import pytz
-from datetime import datetime
+from datetime import datetime, timezone
 from myproject.settings import MEDIA_ROOT, MEDIA_URL, BASE_DIR
 from dotenv import load_dotenv
 load_dotenv()
@@ -25,9 +25,9 @@ HF_API_URL = os.getenv(
 )
 
 context = {}
-now = ""
-save_dir_abs = os.path.join(MEDIA_ROOT, f"script-{now}", "images")
-save_dir = save_dir_abs
+now = None
+# save_dir_abs = os.path.join(MEDIA_ROOT, f"script-{now}", "images")
+# save_dir = save_dir_abs
 
 # --------------------------
 # 1️⃣ Generate SCENES
@@ -81,7 +81,7 @@ def generate_images(scenes, template, save_dir_abs):
     err_limit = 0
     total_frame_cnt = 0
 
-    # ✅ ensure folder exists
+    # ✅ ensure folder exists (safe on Render)
     os.makedirs(save_dir_abs, exist_ok=True)
 
     for i, description in enumerate(scenes):
@@ -121,14 +121,14 @@ def generate_images(scenes, template, save_dir_abs):
                 time.sleep(4)
                 continue
 
-            # ❌ API error handling
+            # ❌ API error
             if response.status_code != 200:
                 print("IMAGE GEN ERROR:", response.text)
                 err_limit += 1
                 time.sleep(4)
                 continue
 
-            # ❌ ensure it's image
+            # ❌ ensure image response
             content_type = response.headers.get("content-type", "")
             if "image" not in content_type:
                 print("NOT IMAGE RESPONSE:", response.text)
@@ -136,19 +136,14 @@ def generate_images(scenes, template, save_dir_abs):
                 time.sleep(4)
                 continue
 
-            # ✅ safe file path
+            # ✅ save image
             filepath = f"{total_frame_cnt + 1:04d}.jpeg"
             full_path = os.path.join(save_dir_abs, filepath)
-
-            # 🔥 IMPORTANT: ensure directory exists (safe on Render)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
             with open(full_path, "wb") as file:
                 file.write(response.content)
 
-            # store path
-            img_url = full_path.replace("\\", "/")
-            generated_images.append(img_url)
+            generated_images.append(full_path.replace("\\", "/"))
 
             scene_frame_cnt += 1
             total_frame_cnt += 1
