@@ -24,8 +24,8 @@ HF_API_URL = os.getenv(
     "https://api-inference.huggingface.co/models"
 )
 
-context = {}
-now = None
+# context = {}
+# now = ""
 # save_dir_abs = os.path.join(MEDIA_ROOT, f"script-{now}", "images")
 # save_dir = save_dir_abs
 
@@ -74,7 +74,7 @@ def generate_scenes(script):
 # --------------------------
 # 2️⃣ Generate KEY FRAMES
 # --------------------------
-def generate_images(scenes, template, save_dir_abs):
+def generate_images(scenes, template, save_dir_abs, now):
     api_url = f"{HF_API_URL}/black-forest-labs/FLUX.1-schnell"
 
     generated_images = []
@@ -143,8 +143,15 @@ def generate_images(scenes, template, save_dir_abs):
             with open(full_path, "wb") as file:
                 file.write(response.content)
 
-            generated_images.append(full_path.replace("\\", "/"))
+            filename = f"{total_frame_cnt + 1:04d}.jpeg"
+            image_url = os.path.join(
+                MEDIA_URL,
+                f"script-{now}",
+                "images",
+                filename
+            ).replace("\\", "/")
 
+            generated_images.append(image_url)
             scene_frame_cnt += 1
             total_frame_cnt += 1
 
@@ -248,16 +255,17 @@ def home(request):
 # --------------------------
 def key_frames(request):
     if request.method == "POST":
-        global context, save_dir, save_dir_abs, now
 
         timezone = pytz.timezone("Asia/Kolkata")
         now = datetime.now(timezone).strftime("%d-%m--%H-%M")
 
-        save_dir = os.path.join(MEDIA_URL, f"script-{now}", "images").replace("\\", "/")
-        save_dir_abs = os.path.join(MEDIA_ROOT, f"script-{now}", "images").replace("\\", "/")
+        save_dir_abs = os.path.join(
+            MEDIA_ROOT,
+            f"script-{now}",
+            "images"
+        ).replace("\\", "/")
 
         os.makedirs(save_dir_abs, exist_ok=True)
-        os.chdir(save_dir_abs)
 
         angles = [
             "front view realistic",
@@ -269,20 +277,19 @@ def key_frames(request):
         scenes = request.session.get("scenes")
 
         if not scenes:
-            context["error"] = "Scenes not found. Please generate script again."
-            return render(request, "home.html", context)
+            return render(request, "home.html", {"error": "Scenes not found"})
 
-        images = generate_images(scenes, angles, save_dir)
+        images = generate_images(scenes, angles, save_dir_abs, now)
 
         if not images:
-            context["error"] = "Key frames not generated"
-            return render(request, "home.html", context)
+            return render(request, "home.html", {"error": "Key frames not generated"})
 
-        context["keyframes"] = images
-        return render(request, "keyframes.html", context)
+        request.session["save_dir_abs"] = save_dir_abs
+        request.session["now"] = now
 
-    return render(request, "home.html", context)
+        return render(request, "keyframes.html", {"keyframes": images})
 
+    return render(request, "home.html")
 
 # --------------------------
 # INTERPOLATED FRAMES PAGE
@@ -306,21 +313,25 @@ def interpolated_frames(request):
 # --------------------------
 def video(request):
     if request.method == "POST":
-        global context, save_dir, save_dir_abs, now
+
+        save_dir_abs = request.session.get("save_dir_abs")
+        now = request.session.get("now")
+
+        if not save_dir_abs or not now:
+            return render(request, "home.html", {"error": "Session expired"})
 
         if not create_video(save_dir_abs):
-            context["error"] = "Video generation error"
-            return render(request, "home.html", context)
+            return render(request, "home.html", {"error": "Video generation error"})
 
-        video_path = os.path.join(os.path.dirname(save_dir), f"{now}.mp4").replace("\\", "/")
-        context["video_url"] = video_path
+        video_url = os.path.join(
+            MEDIA_URL,
+            f"script-{now}",
+            f"{now}.mp4"
+        ).replace("\\", "/")
 
-        return render(request, "video.html", context)
+        return render(request, "video.html", {"video_url": video_url})
 
-    return render(request, "home.html", context)
-
-
-
+    return render(request, "home.html")
 
 
 
