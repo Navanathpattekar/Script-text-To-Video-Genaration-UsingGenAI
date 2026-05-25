@@ -26,9 +26,8 @@ HF_API_URL = os.getenv(
 
 context = {}
 now = ""
-save_dir = ""
-save_dir_abs = ""
-
+save_dir_abs = os.path.join(MEDIA_ROOT, f"script-{now}", "images")
+save_dir = save_dir_abs
 
 # --------------------------
 # 1️⃣ Generate SCENES
@@ -82,6 +81,7 @@ def generate_images(scenes, template, save_dir_abs):
     err_limit = 0
     total_frame_cnt = 0
 
+    # ✅ ensure folder exists
     os.makedirs(save_dir_abs, exist_ok=True)
 
     for i, description in enumerate(scenes):
@@ -90,12 +90,15 @@ def generate_images(scenes, template, save_dir_abs):
 
         while True:
 
-            if err_limit >= 5 or scene_frame_cnt >= 3:
+            # stop conditions
+            if err_limit >= 5 or scene_frame_cnt >= len(template):
                 err_limit = 0
                 break
 
+            prompt = f"{description} {template[scene_frame_cnt]}"
+
             data = {
-                "inputs": description + " " + template[scene_frame_cnt],
+                "inputs": prompt,
                 "parameters": {
                     "width": 512,
                     "height": 512,
@@ -118,27 +121,33 @@ def generate_images(scenes, template, save_dir_abs):
                 time.sleep(4)
                 continue
 
+            # ❌ API error handling
             if response.status_code != 200:
                 print("IMAGE GEN ERROR:", response.text)
                 err_limit += 1
                 time.sleep(4)
                 continue
 
+            # ❌ ensure it's image
             content_type = response.headers.get("content-type", "")
-
             if "image" not in content_type:
                 print("NOT IMAGE RESPONSE:", response.text)
                 err_limit += 1
                 time.sleep(4)
                 continue
 
+            # ✅ safe file path
             filepath = f"{total_frame_cnt + 1:04d}.jpeg"
             full_path = os.path.join(save_dir_abs, filepath)
+
+            # 🔥 IMPORTANT: ensure directory exists (safe on Render)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
             with open(full_path, "wb") as file:
                 file.write(response.content)
 
-            img_url = os.path.join(save_dir_abs, filepath).replace("\\", "/")
+            # store path
+            img_url = full_path.replace("\\", "/")
             generated_images.append(img_url)
 
             scene_frame_cnt += 1
