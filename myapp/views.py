@@ -46,8 +46,19 @@ def generate_scenes(script):
     }
 
     try:
-        response = requests.post(api_url, headers=HEADERS, json=data)
 
+        print("TOKEN =", HF_API_TOKEN)
+        print("API URL =", api_url)
+        response = requests.post(
+            api_url,
+            headers=HEADERS,
+            json=data,
+            timeout=120
+        )
+
+        print("STATUS =", response.status_code)
+        print("RESPONSE =", response.text)
+        
         print("DEBUG SCENE RESPONSE:", response.text)
 
         response_data = response.json()
